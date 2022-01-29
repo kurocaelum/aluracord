@@ -1,5 +1,7 @@
 import { Box, Text, TextField, Image, Button } from '@skynexui/components'
 import { createClient } from '@supabase/supabase-js'
+import { useRouter } from 'next/router'
+import { ButtonSendSticker } from '../src/components/ButtonSendSticker'
 import React from 'react'
 import appConfig from '../config.json'
 
@@ -7,7 +9,18 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5v
 const SUPABASE_URL = 'https://gatkvrftgzfkulgkwzng.supabase.co'
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
+function escutaMensagensEmTempoReal(adicionaMensagem) {
+	return supabaseClient
+		.from('mensagens')
+		.on('INSERT', (respostaLive) => {
+			adicionaMensagem(respostaLive.new)
+		})
+		.subscribe()
+}
+
 export default function ChatPage() {
+	const roteamento = useRouter()
+	const usuarioLogado = roteamento.query.username
 	const [mensagem, setMensagem] = React.useState('')
 	const [listaDeMensagens, setListaDeMensagens] = React.useState([])
 
@@ -19,11 +32,18 @@ export default function ChatPage() {
 			.then(({ data }) => {
 				setListaDeMensagens(data)
 			})
+
+			escutaMensagensEmTempoReal(novaMensagem => {
+				// Passar uma função pro setState caso queira reusar um valor de referência (objeto/array)
+				setListaDeMensagens((valorAtualDaLista) => {
+					return [novaMensagem, ...valorAtualDaLista]
+				})
+			})
 	}, [])
 
 	function handleNovaMensagem(novaMensagem) {
 		const mensagem = {
-			de: 'kurocaelum',
+			de: usuarioLogado,
 			texto: novaMensagem,
 		}
 
@@ -31,7 +51,7 @@ export default function ChatPage() {
 			.from('mensagens')
 			.insert([mensagem])
 			.then(({ data }) => {
-				setListaDeMensagens([data[0], ...listaDeMensagens])
+				console.log('Criando mensagem: ', data)
 			})
 
 		setMensagem('')
@@ -112,6 +132,13 @@ export default function ChatPage() {
 								color: appConfig.theme.colors.neutrals[200],
 							}}
 						/>
+
+						{/* Callback */}
+						<ButtonSendSticker 
+							onStickerClick={(sticker) => {
+								handleNovaMensagem(`:sticker: ${sticker}`)
+							}}
+						/>
 					</Box>
 				</Box>
 			</Box>
@@ -184,7 +211,8 @@ function MessageList(props) {
 								{new Date().toLocaleDateString()}
 							</Text>
 						</Box>
-						{mensagem.texto}
+						
+						{mensagem.texto.startsWith(':sticker:') ? <Image src={mensagem.texto.replace(':sticker:', '')} /> : mensagem.texto}
 					</Text>
 				)
 			})}
