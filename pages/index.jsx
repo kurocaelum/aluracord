@@ -63,7 +63,6 @@ export default function PaginaInicial() {
 						as='form'
 						onSubmit={function (event) {
 							event.preventDefault()
-							console.log('Form submetido')
 
 							roteamento.push('/chat')
 							// window.location.href = '/chat'
@@ -96,7 +95,6 @@ export default function PaginaInicial() {
 							fullWidth
 							value={username}
 							onChange={function (event) {
-								console.log('usuario digitou', event.target.value)
 								const valor = event.target.value
 								setUsername(valor)
 							}}
